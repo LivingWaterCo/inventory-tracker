@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Living Water Co. — Bottle Inventory</title>
+<style>
+:root {
+  --blue:#1a6fba;--blue-l:#e8f2fb;--blue-d:#135099;
+  --green:#16a34a;--green-l:#dcfce7;
+  --red:#dc2626;--red-l:#fee2e2;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --orange:#ea580c;--orange-l:#ffedd5;
+  --purple:#7c3aed;--purple-l:#ede9fe;
+  --teal:#0891b2;--teal-l:#cffafe;
+  --pink:#db2777;--pink-l:#fce7f3;
+  --indigo:#4f46e5;--indigo-l:#e0e7ff;
+  --g50:#f9fafb;--g100:#f3f4f6;--g200:#e5e7eb;
+  --g300:#d1d5db;--g500:#6b7280;--g700:#374151;--g900:#111827;
+  --r:10px;--sh:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--g50);color:var(--g900);min-height:100vh}
+header{background:var(--blue);color:white;padding:14px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+header h1{font-size:1.1rem;font-weight:700}header p{font-size:.75rem;opacity:.75;margin-top:1px}
+.sync-badge{margin-left:auto;font-size:.72rem;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.15);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
+.sync-dot.loading{background:#fbbf24;animation:pulse 1s infinite}.sync-dot.error{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+nav{background:white;border-bottom:1px solid var(--g200);display:flex;padding:0 12px;overflow-x:auto}
+nav button{background:none;border:none;padding:12px 13px;font-size:.79rem;font-weight:500;color:var(--g500);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+nav button:hover{color:var(--blue)}nav button.active{color:var(--blue);border-bottom-color:var(--blue)}
+main{padding:20px;max-width:1200px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+
+.alert-banner{padding:12px 18px;border-radius:var(--r);font-size:.85rem;font-weight:600;margin-bottom:18px;display:none;align-items:center;gap:10px}
+.alert-banner.show{display:flex}
+.alert-banner.warn{background:var(--amber-l);color:var(--amber);border:1px solid #fcd34d}
+.alert-banner.danger{background:var(--red-l);color:var(--red);border:1px solid #fca5a5}
+
+/* SETUP */
+.setup-wrap{max-width:580px;margin:36px auto}
+.setup-card{background:white;border-radius:var(--r);padding:30px;box-shadow:var(--sh)}
+.setup-card h2{font-size:1.2rem;font-weight:700;margin-bottom:4px}
+.setup-card .sub{font-size:.85rem;color:var(--g500);margin-bottom:26px}
+.step{display:flex;gap:12px;margin-bottom:18px;align-items:flex-start}
+.step-num{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--blue);color:white;font-size:.78rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step-body strong{font-size:.875rem;display:block;margin-bottom:2px}
+.step-body p{font-size:.78rem;color:var(--g500);line-height:1.5}
+.step-body code{background:var(--g100);padding:2px 5px;border-radius:4px;font-size:.75rem;font-family:monospace}
+hr.div{border:none;border-top:1px solid var(--g200);margin:22px 0}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:11px;margin-bottom:16px}
+.stat{background:white;border-radius:var(--r);padding:15px;box-shadow:var(--sh)}
+.stat .lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--g500);margin-bottom:5px}
+.stat .val{font-size:1.55rem;font-weight:700;line-height:1}
+.stat .sub{font-size:.68rem;color:var(--g500);margin-top:3px}
+.stat.blue .val{color:var(--blue)}.stat.green .val{color:var(--green)}
+.stat.amber .val{color:var(--amber)}.stat.red .val{color:var(--red)}
+.stat.purple .val{color:var(--purple)}.stat.teal .val{color:var(--teal)}
+.stat.pink .val{color:var(--pink)}.stat.indigo .val{color:var(--indigo)}
+
+/* GIVING BANNER */
+.giving-banner{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #86efac;border-radius:var(--r);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.giving-banner .icon{font-size:1.8rem}
+.giving-banner h3{font-size:.9rem;font-weight:700;color:var(--green);margin-bottom:2px}
+.giving-banner p{font-size:.76rem;color:var(--g700)}
+.giving-amount{margin-left:auto;text-align:right}
+.giving-amount .big{font-size:1.6rem;font-weight:800;color:var(--green);line-height:1}
+.giving-amount .small{font-size:.7rem;color:var(--g500);margin-top:2px}
+
+/* PROGRESS */
+.prog-wrap{background:white;border-radius:var(--r);padding:15px;box-shadow:var(--sh);margin-bottom:16px}
+.prog-wrap h3{font-size:.82rem;font-weight:600;margin-bottom:8px;color:var(--g700)}
+.prog-bg{background:var(--g100);border-radius:999px;height:13px;overflow:hidden;position:relative}
+.prog-segment{height:100%;position:absolute;top:0;transition:all .4s}
+.prog-legend{display:flex;gap:12px;margin-top:7px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--g700)}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* CARD */
+.card{background:white;border-radius:var(--r);padding:18px;box-shadow:var(--sh);margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;flex-wrap:wrap;gap:8px}
+.card-header h3{font-size:.93rem;font-weight:600}
+
+/* NL */
+.nl-box{background:linear-gradient(135deg,var(--blue-l),var(--purple-l));border:1.5px solid #c4b5fd;border-radius:var(--r);padding:17px;margin-bottom:16px}
+.nl-box h3{font-size:.88rem;font-weight:700;color:var(--purple);margin-bottom:3px}
+.nl-box p{font-size:.74rem;color:var(--g700);margin-bottom:9px;line-height:1.5}
+.nl-examples{font-size:.7rem;color:var(--g500);margin-bottom:9px;line-height:1.8;font-style:italic}
+.nl-input-wrap{display:flex;gap:8px}
+.nl-input{flex:1;padding:9px 12px;border:1.5px solid #c4b5fd;border-radius:7px;font-size:.875rem;font-family:inherit;background:white}
+.nl-input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+.btn-purple{background:var(--purple);color:white;border:none;padding:9px 15px;border-radius:7px;font-size:.875rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit}
+.btn-purple:hover{background:#6d28d9}
+.nl-preview{margin-top:11px;background:white;border-radius:7px;padding:12px;border:1px solid #c4b5fd;display:none}
+.nl-preview h4{font-size:.7rem;font-weight:700;color:var(--purple);margin-bottom:7px;text-transform:uppercase;letter-spacing:.05em}
+.nl-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px}
+.nl-field{font-size:.73rem}.nl-field span{display:block;color:var(--g500);font-size:.63rem;font-weight:600;text-transform:uppercase;margin-bottom:1px}
+.nl-field strong{color:var(--g900)}.nl-field.missing strong{color:var(--red)}
+
+/* FORM */
+.form-card{background:white;border-radius:var(--r);padding:22px;box-shadow:var(--sh);max-width:680px}
+.form-card h2{font-size:.95rem;font-weight:700;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.form-group label{font-size:.74rem;font-weight:600;color:var(--g700)}
+.form-group input,.form-group select{padding:9px 11px;border:1.5px solid var(--g200);border-radius:7px;font-size:.875rem;color:var(--g900);background:white;font-family:inherit;transition:border .15s}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,111,186,.1)}
+.qty-toggle{display:flex;border-radius:7px;overflow:hidden;border:1.5px solid var(--g200)}
+.qty-toggle button{flex:1;padding:9px;border:none;background:white;font-size:.82rem;font-weight:500;cursor:pointer;color:var(--g500);transition:all .15s;font-family:inherit}
+.qty-toggle button.active{background:var(--blue);color:white}
+
+/* PROFIT HINT */
+.profit-hint{font-size:.72rem;margin-top:3px;line-height:1.6;background:var(--g50);border-radius:5px;padding:6px 8px;display:none}
+.profit-hint.show{display:block}
+.ph-row{display:flex;justify-content:space-between}
+.ph-row .ph-lbl{color:var(--g500)}
+.ph-row .ph-val{font-weight:600}
+.ph-row.total .ph-lbl{color:var(--g700);font-weight:700}
+.ph-row.total .ph-val{color:var(--green);font-weight:800}
+.ph-row.fee .ph-val{color:var(--red)}
+.ph-divider{border:none;border-top:1px solid var(--g200);margin:3px 0}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:9px 15px;border-radius:7px;font-size:.875rem;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.btn-primary{background:var(--blue);color:white}.btn-primary:hover{background:var(--blue-d)}
+.btn-secondary{background:var(--g100);color:var(--g700)}.btn-secondary:hover{background:var(--g200)}
+.btn-danger{background:var(--red-l);color:var(--red)}.btn-danger:hover{background:#fca5a5}
+.btn-green{background:var(--green-l);color:var(--green)}.btn-green:hover{background:#bbf7d0}
+.btn-teal{background:var(--teal-l);color:var(--teal)}.btn-teal:hover{background:#a5f3fc}
+.btn-sm{padding:5px 11px;font-size:.75rem}.btn-xs{padding:3px 8px;font-size:.67rem}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.77rem}
+th{background:var(--g50);padding:8px 10px;text-align:left;font-weight:600;font-size:.66rem;text-transform:uppercase;letter-spacing:.04em;color:var(--g500);border-bottom:1px solid var(--g200);white-space:nowrap}
+th.right,td.right{text-align:right}
+td{padding:9px 10px;border-bottom:1px solid var(--g100);color:var(--g700);vertical-align:middle}
+tr:last-child td{border-bottom:none}tr:hover td{background:var(--g50)}
+tr.total-row td{background:var(--g50);font-weight:700;border-top:2px solid var(--g200);border-bottom:none}
+.empty{text-align:center;padding:36px;color:var(--g500);font-size:.875rem}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:.66rem;font-weight:600}
+.b-blue{background:var(--blue-l);color:var(--blue)}.b-green{background:var(--green-l);color:var(--green)}
+.b-amber{background:var(--amber-l);color:var(--amber)}.b-orange{background:var(--orange-l);color:var(--orange)}
+.b-purple{background:var(--purple-l);color:var(--purple)}.b-teal{background:var(--teal-l);color:var(--teal)}
+.b-gray{background:var(--g100);color:var(--g500)}.b-red{background:var(--red-l);color:var(--red)}
+.b-indigo{background:var(--indigo-l);color:var(--indigo)}
+
+/* INLINE ALERT */
+.alert{padding:10px 14px;border-radius:7px;font-size:.82rem;font-weight:500;margin-bottom:13px;display:none}
+.alert.show{display:block}
+.alert-success{background:var(--green-l);color:var(--green)}
+.alert-error{background:var(--red-l);color:var(--red)}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100}
+.overlay.open{display:flex}
+.modal{background:white;border-radius:var(--r);padding:24px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:.95rem;font-weight:700;margin-bottom:6px}
+.modal p{font-size:.82rem;color:var(--g500);margin-bottom:18px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+.search-bar{padding:8px 11px 8px 32px;border:1.5px solid var(--g200);border-radius:7px;font-size:.79rem;background:white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 8px center}
+.search-bar:focus{outline:none;border-color:var(--blue)}
+.fsel{padding:7px 9px;border:1.5px solid var(--g200);border-radius:7px;font-size:.75rem;background:white}
+
+.del-btn{background:none;border:none;cursor:pointer;color:var(--g300);padding:3px;border-radius:4px;display:flex;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+
+/* SETTINGS */
+.settings-card{background:white;border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:14px;max-width:620px}
+.settings-card h3{font-size:.88rem;font-weight:700;margin-bottom:13px}
+.s-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--g100);font-size:.875rem}
+.s-row:last-child{border-bottom:none}.s-row .sk{font-weight:500}.s-row .sv{color:var(--g500)}
+
+/* FEE TABLE */
+.fee-table{width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:14px}
+.fee-table th{text-align:left;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--g500);padding:6px 8px;border-bottom:2px solid var(--g200)}
+.fee-table td{padding:8px 8px;border-bottom:1px solid var(--g100);vertical-align:middle}
+.fee-table tr:last-child td{border-bottom:none}
+.fee-table input{width:90px;padding:5px 8px;border:1.5px solid var(--g200);border-radius:6px;font-size:.82rem;font-family:inherit;text-align:right}
+.fee-table input:focus{outline:none;border-color:var(--blue)}
+.fee-icon{font-size:1rem;margin-right:5px}
+.fee-source{font-size:.68rem;color:var(--g500)}
+
+/* PROFIT PAGE */
+.profit-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:11px;margin-bottom:18px}
+.p-card{border-radius:var(--r);padding:16px}
+.p-card .plbl{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.p-card .pval{font-size:1.5rem;font-weight:800;line-height:1}
+.p-card .psub{font-size:.7rem;margin-top:4px;opacity:.8}
+.p-card.revenue{background:var(--blue-l);color:var(--blue)}
+.p-card.cogs{background:var(--amber-l);color:var(--amber)}
+.p-card.fees{background:var(--red-l);color:var(--red)}
+.p-card.profit{background:var(--green-l);color:var(--green)}
+.p-card.giving{background:linear-gradient(135deg,#f0fdf4,#dcfce7);color:var(--green);border:2px solid #86efac}
+.p-card.margin{background:var(--purple-l);color:var(--purple)}
+
+/* AGING */
+.aging-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.aging-card{border-radius:var(--r);padding:13px;text-align:center}
+.aging-card .aval{font-size:1.4rem;font-weight:800;line-height:1;margin-bottom:3px}
+.aging-card .albl{font-size:.69rem;font-weight:600}
+.aging-card.a0{background:var(--amber-l);color:var(--amber)}
+.aging-card.a30{background:var(--orange-l);color:var(--orange)}
+.aging-card.a60{background:var(--red-l);color:var(--red)}
+.aging-card.a90{background:#7f1d1d;color:#fca5a5}
+
+/* HOLDER */
+.holder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:13px}
+.holder-card{background:white;border-radius:var(--r);padding:14px;box-shadow:var(--sh);border-left:4px solid var(--purple)}
+.holder-card.returned{border-left-color:var(--g300);opacity:.7}
+.holder-card .hname{font-size:.9rem;font-weight:700;margin-bottom:2px}
+.holder-card .hbottles{font-size:.73rem;color:var(--g500);margin-bottom:8px}
+.holder-card .hdetails{font-size:.72rem;color:var(--g700);line-height:1.7}
+.holder-actions{display:flex;gap:6px;margin-top:10px}
+
+@media(max-width:600px){
+  .form-row{grid-template-columns:1fr}main{padding:14px}
+  .stats-grid{grid-template-columns:1fr 1fr}.nl-input-wrap{flex-direction:column}
+  .giving-banner{flex-direction:column}.giving-amount{margin-left:0}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+    <rect width="32" height="32" rx="8" fill="rgba(255,255,255,.15)"/>
+    <path d="M16 6C16 6 10 13 10 18a6 6 0 0 0 12 0c0-5-6-12-6-12Z" fill="white" opacity=".9"/>
+    <path d="M12 20c0 2.2 1.8 4 4 4" stroke="rgba(26,111,186,.5)" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>
+  <div><h1>Living Water Co.</h1><p>Bottle Inventory</p></div>
+  <div class="sync-badge"><span class="sync-dot loading" id="sync-dot"></span><span id="sync-text">Connecting…</span></div>
+</header>
+
+<nav id="main-nav" style="display:none">
+  <button class="active" onclick="showPage('dashboard')">📊 Dashboard</button>
+  <button onclick="showPage('add-sale')">➕ Record Sale</button>
+  <button onclick="showPage('transactions')">📋 Transactions</button>
+  <button onclick="showPage('holders')">📦 Holding</button>
+  <button onclick="showPage('profits')">💰 Profits</button>
+  <button onclick="showPage('settings')">⚙️ Settings</button>
+</nav>
+
+<main>
+
+<!-- SETUP -->
+<div id="page-setup" class="page active">
+  <div class="setup-wrap"><div class="setup-card">
+    <h2>👋 Welcome to Living Water Co. Inventory</h2>
+    <p class="sub">Connect a Google Sheet so you and Cole can both update the tracker from any device.</p>
+    <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Create a new Google Sheet</strong><p>Go to <a href="https://sheets.google.com" target="_blank" style="color:var(--blue)">sheets.google.com</a>, create a blank spreadsheet, share it with Cole.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Open Apps Script</strong><p>In the spreadsheet: <code>Extensions</code> → <code>Apps Script</code>.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Paste the backend code</strong><p>Open <code>apps-script.js</code>, copy all, paste into editor, save.</p></div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Deploy as Web App</strong><p><code>Deploy</code> → <code>New deployment</code> → gear → <code>Web app</code>. Execute as: <strong>Me</strong>, Who has access: <strong>Anyone</strong>. Deploy &amp; authorize.</p></div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body"><strong>Paste the URL below</strong><p><code>https://script.google.com/macros/s/ABC.../exec</code></p></div></div>
+    <hr class="div">
+    <div id="setup-alert" class="alert"></div>
+    <div class="form-group"><label>Apps Script Web App URL</label><input type="url" id="setup-url" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:.8rem"></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-primary" onclick="connectSheet()">🔗 Connect &amp; Test</button>
+      <span id="setup-spinner" style="font-size:.8rem;color:var(--g500);display:none">Testing…</span>
+    </div>
+  </div></div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page">
+  <div id="inv-alert" class="alert-banner warn">⚠️ <span id="inv-alert-txt"></span></div>
+  <div class="stats-grid">
+    <div class="stat blue"><div class="lbl">Total Received</div><div class="val" id="s-total">—</div><div class="sub" id="s-total-sub">—</div></div>
+    <div class="stat green"><div class="lbl">In Hand</div><div class="val" id="s-remain">—</div><div class="sub" id="s-remain-sub">—</div></div>
+    <div class="stat purple"><div class="lbl">With Holders</div><div class="val" id="s-held">—</div><div class="sub" id="s-held-sub">—</div></div>
+    <div class="stat amber"><div class="lbl">Sold</div><div class="val" id="s-sold">—</div><div class="sub" id="s-sold-sub">—</div></div>
+    <div class="stat teal"><div class="lbl">Revenue</div><div class="val" id="s-rev">—</div><div class="sub" id="s-tx">—</div></div>
+    <div class="stat indigo"><div class="lbl">Proc. Fees</div><div class="val" id="s-fees">—</div><div class="sub" id="s-fees-sub">payment costs</div></div>
+    <div class="stat green"><div class="lbl">Net Profit</div><div class="val" id="s-profit">—</div><div class="sub" id="s-margin">—% margin</div></div>
+    <div class="stat red"><div class="lbl">Unpaid</div><div class="val" id="s-unpaid">$—</div><div class="sub" id="s-unpaid-sub">— open invoices</div></div>
+    <div class="stat pink"><div class="lbl">Giving (<span id="d-giv-pct">10</span>%)</div><div class="val" id="s-giving-mo">$—</div><div class="sub" id="s-giving-total">— total</div></div>
+  </div>
+  <div class="giving-banner">
+    <div class="icon">🙏</div>
+    <div><h3 id="giving-h3">Giving This Month</h3><p id="giving-p">Based on <span id="giving-pct">10</span>% of net profit</p></div>
+    <div class="giving-amount"><div class="big" id="giving-big">$0.00</div><div class="small" id="giving-small">$0.00 total to date</div></div>
+  </div>
+  <div class="prog-wrap">
+    <h3>Inventory Level</h3>
+    <div class="prog-bg" style="height:13px">
+      <div class="prog-segment" id="prog-sold" style="background:var(--amber);left:0"></div>
+      <div class="prog-segment" id="prog-held" style="background:var(--purple)"></div>
+      <div class="prog-segment" id="prog-remain" style="background:var(--blue)"></div>
+    </div>
+    <div class="prog-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div><span id="leg-remain">In hand</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div><span id="leg-held">With holders</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div><span id="leg-sold">Sold</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Recent Transactions</h3><button class="btn btn-secondary btn-sm" onclick="showPage('transactions')">View all →</button></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Name</th><th>By</th><th class="right">Bottles</th><th class="right">Revenue</th><th class="right">COGS</th><th class="right">Proc. Fee</th><th class="right">Net Profit</th><th>Payment</th><th>Status</th></tr></thead>
+      <tbody id="recent-tbody"><tr><td colspan="10" class="empty">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- ADD SALE -->
+<div id="page-add-sale" class="page">
+  <div class="nl-box">
+    <h3>✨ Quick Entry</h3>
+    <p>Type what happened — I'll fill the form for you.</p>
+    <div class="nl-examples">
+      "Sold 3 cases to First Baptist Church, John Smith paid $72 cash"<br>
+      "Cole sold 5 cases via Shopify to ABC Business, $150, unpaid"<br>
+      "2 bottles to Jane Doe, $10 square, jane@email.com"
+    </div>
+    <div class="nl-input-wrap">
+      <input class="nl-input" id="nl-text" placeholder="Type what happened…" onkeydown="if(event.key==='Enter')parseNL()">
+      <button class="btn-purple" onclick="parseNL()">Parse →</button>
+    </div>
+    <div class="nl-preview" id="nl-preview"><h4>Parsed — review &amp; save below ↓</h4><div class="nl-fields" id="nl-fields"></div></div>
+  </div>
+  <div class="form-card">
+    <h2 id="form-title">Sale Details</h2>
+    <div id="edit-banner" style="display:none;background:var(--teal-l);border:1.5px solid var(--teal);border-radius:7px;padding:10px 14px;font-size:.82rem;color:var(--teal);font-weight:600;margin-bottom:12px">✏️ Editing existing transaction — make changes and click Update.</div>
+    <div id="sale-alert" class="alert"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Full Name *</label><input type="text" id="f-name" placeholder="Jane Smith"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="f-email" placeholder="jane@example.com"></div>
+    </div>
+    <div class="form-group"><label>Address</label><input type="text" id="f-address" placeholder="123 Main St, City, State ZIP"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Organization Type *</label>
+        <select id="f-org"><option value="">— Select —</option><option>Church</option><option>Business</option><option>Individual</option><option>Nonprofit / Other</option></select>
+      </div>
+      <div class="form-group"><label>Organization Name</label><input type="text" id="f-org-name" placeholder="Name of church or business"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Sale Type *</label>
+        <div class="qty-toggle"><button class="active" id="tog-cases" onclick="setMode('cases')">📦 Cases</button><button id="tog-singles" onclick="setMode('singles')">🍶 Singles</button></div>
+      </div>
+      <div class="form-group">
+        <label id="qty-lbl">Number of Cases *</label>
+        <input type="number" id="f-qty" min="1" placeholder="1" oninput="updateHint()">
+        <span id="qty-hint" style="font-size:.7rem;color:var(--g500);margin-top:2px">= <span id="qty-bottles">24</span> bottles</span>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Amount Charged ($) *</label><input type="number" id="f-amount" min="0" step="0.01" placeholder="0.00" oninput="updateHint()"></div>
+      <div class="form-group"><label>Payment Method *</label>
+        <select id="f-payment" onchange="onPaymentChange()">
+          <option value="">— Select —</option>
+          <option>Cash</option><option>Check</option><option>Card</option>
+          <option>Venmo</option><option>Zelle</option><option>CashApp</option>
+          <option>Square</option><option>Shopify</option>
+          <option>Not Paid</option>
+        </select>
+      </div>
+    </div>
+    <!-- PROFIT HINT BOX -->
+    <div class="profit-hint" id="profit-hint">
+      <div class="ph-row"><span class="ph-lbl">Revenue</span><span class="ph-val" id="ph-rev">—</span></div>
+      <div class="ph-row"><span class="ph-lbl">Cost of goods (<span id="ph-cpb">$1.56</span>/bottle)</span><span class="ph-val" style="color:var(--amber)" id="ph-cogs">—</span></div>
+      <div class="ph-row fee"><span class="ph-lbl" id="ph-fee-lbl">Processing fee</span><span class="ph-val" id="ph-fee">—</span></div>
+      <hr class="ph-divider">
+      <div class="ph-row total"><span class="ph-lbl">Net Profit</span><span class="ph-val" id="ph-profit">—</span></div>
+      <div class="ph-row"><span class="ph-lbl" id="ph-giv-lbl">Giving (<span id="ph-givpct">10</span>%)</span><span class="ph-val" style="color:var(--green)" id="ph-giving">—</span></div>
+    </div>
+    <div class="form-row" style="margin-top:12px">
+      <div class="form-group"><label>Payment Status *</label>
+        <select id="f-pstatus"><option value="Paid">✅ Paid</option><option value="Unpaid">❌ Unpaid</option><option value="Partial">⚠️ Partial</option></select>
+      </div>
+      <div class="form-group"><label>Date *</label><input type="date" id="f-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Logged By</label><select id="f-by"><option value="Me">Me</option><option value="Cole">Cole</option></select></div>
+      <div class="form-group"><label>Notes</label><input type="text" id="f-notes" placeholder="Optional"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" id="save-btn" onclick="saveSale()">💾 Save Sale</button>
+      <button class="btn btn-secondary" id="cancel-edit-btn" onclick="cancelEdit()" style="display:none">✕ Cancel Edit</button>
+      <button class="btn btn-secondary" id="clear-btn" onclick="clearForm()">✕ Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS -->
+<div id="page-transactions" class="page">
+  <div class="card">
+    <div class="card-header">
+      <h3>All Transactions</h3>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <input class="search-bar" type="text" id="search" placeholder="Search…" oninput="renderTx()">
+        <select class="fsel" id="filt-type" onchange="renderTx()"><option value="">All types</option><option>Church</option><option>Business</option><option>Individual</option><option>Nonprofit / Other</option></select>
+        <select class="fsel" id="filt-pstatus" onchange="renderTx()"><option value="">All statuses</option><option value="Paid">Paid</option><option value="Unpaid">Unpaid</option><option value="Partial">Partial</option></select>
+        <select class="fsel" id="filt-pay" onchange="renderTx()"><option value="">All payments</option><option>Cash</option><option>Check</option><option>Card</option><option>Venmo</option><option>Zelle</option><option>CashApp</option><option>Square</option><option>Shopify</option><option>Not Paid</option></select>
+        <select class="fsel" id="filt-by" onchange="renderTx()"><option value="">All loggers</option><option value="Me">Me</option><option value="Cole">Cole</option></select>
+        <button class="btn btn-green btn-sm" onclick="exportCSV()">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Date</th><th>Name</th><th>Org</th><th>By</th><th>Mode</th>
+        <th class="right">Btls</th><th class="right">Revenue</th><th class="right">COGS</th>
+        <th class="right">Proc. Fee</th><th class="right">Net Profit</th>
+        <th>Payment</th><th>Status</th><th>Notes</th><th>Edit</th><th>Del</th>
+      </tr></thead>
+      <tbody id="tx-tbody"><tr><td colspan="14" class="empty">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- HOLDERS -->
+<div id="page-holders" class="page">
+  <div class="card">
+    <div class="card-header"><h3>📦 People Holding Inventory</h3><button class="btn btn-primary btn-sm" onclick="toggleHolderForm()">+ Add Holder</button></div>
+    <p style="font-size:.79rem;color:var(--g500);margin-bottom:13px">Track people who have taken bottles to hold or distribute. Their bottles deduct from available inventory.</p>
+    <div id="holder-form-wrap" style="display:none;background:var(--g50);border-radius:var(--r);padding:17px;margin-bottom:16px;border:1px solid var(--g200)">
+      <h4 style="font-size:.875rem;font-weight:700;margin-bottom:13px">Add a Holder</h4>
+      <div id="holder-alert" class="alert"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Name *</label><input type="text" id="h-name" placeholder="John Smith"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="h-phone" placeholder="(555) 000-0000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="h-email" placeholder="john@email.com"></div>
+        <div class="form-group"><label>Address</label><input type="text" id="h-address" placeholder="123 Main St"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Holding Type</label>
+          <div class="qty-toggle"><button class="active" id="ht-cases" onclick="setHMode('cases')">📦 Cases</button><button id="ht-singles" onclick="setHMode('singles')">🍶 Singles</button></div>
+        </div>
+        <div class="form-group">
+          <label id="h-qty-lbl">Number of Cases *</label>
+          <input type="number" id="h-qty" min="1" placeholder="1" oninput="updateHHint()">
+          <span id="h-qty-hint" style="font-size:.7rem;color:var(--g500);margin-top:2px">= <span id="h-qty-btl">24</span> bottles</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Date Given *</label><input type="date" id="h-date"></div>
+        <div class="form-group"><label>Notes</label><input type="text" id="h-notes" placeholder="Optional"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" id="holder-save-btn" onclick="saveHolder()">💾 Save Holder</button>
+        <button class="btn btn-secondary" onclick="toggleHolderForm()">Cancel</button>
+      </div>
+    </div>
+    <div id="holders-list"><p class="empty">Loading…</p></div>
+  </div>
+</div>
+
+<!-- PROFITS -->
+<div id="page-profits" class="page">
+  <div class="profit-summary">
+    <div class="p-card revenue"><div class="plbl">Total Revenue</div><div class="pval" id="p-rev">—</div><div class="psub">from all sales</div></div>
+    <div class="p-card cogs"><div class="plbl">Cost of Goods</div><div class="pval" id="p-cogs">—</div><div class="psub" id="p-cogs-sub">—</div></div>
+    <div class="p-card fees"><div class="plbl">Processing Fees</div><div class="pval" id="p-fees">—</div><div class="psub" id="p-fees-sub">Shopify · Square · etc.</div></div>
+    <div class="p-card profit"><div class="plbl">Net Profit</div><div class="pval" id="p-profit">—</div><div class="psub" id="p-margin-lbl">—</div></div>
+    <div class="p-card margin"><div class="plbl">Avg Per Bottle</div><div class="pval" id="p-per-bottle">—</div><div class="psub">net profit/bottle</div></div>
+    <div class="p-card giving"><div class="plbl">💝 Total Giving (<span id="p-giv-pct">10</span>%)</div><div class="pval" id="p-giving">—</div><div class="psub">set aside for giving</div></div>
+  </div>
+
+  <!-- FEE BREAKDOWN -->
+  <div class="card">
+    <div class="card-header"><h3>💳 Processing Fees by Payment Method</h3></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Payment Method</th><th>Rate</th><th class="right">Transactions</th><th class="right">Revenue</th><th class="right">Fees Paid</th><th class="right">% of Revenue</th></tr></thead>
+      <tbody id="fee-breakdown-tbody"><tr><td colspan="6" class="empty">No data yet.</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- UNPAID AGING -->
+  <div class="card">
+    <div class="card-header"><h3>⏰ Unpaid Invoice Aging</h3><span id="aging-total" style="font-size:.79rem;color:var(--g500)"></span></div>
+    <div class="aging-grid" id="aging-grid"></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Name</th><th>Org</th><th>Date</th><th>Days Out</th><th class="right">Amount</th><th>Age</th><th></th></tr></thead>
+      <tbody id="aging-tbody"><tr><td colspan="7" class="empty">No unpaid invoices 🎉</td></tr></tbody>
+    </table></div>
+  </div>
+
+  <!-- MONTHLY P&L -->
+  <div class="card">
+    <div class="card-header"><h3>📅 Monthly P&amp;L</h3></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr>
+        <th>Month</th><th class="right">Sales</th><th class="right">Revenue</th>
+        <th class="right">COGS</th><th class="right">Proc. Fees</th>
+        <th class="right">Net Profit</th><th class="right">Margin</th>
+        <th class="right">💝 Give (<span id="tbl-pct">10</span>%)</th>
+      </tr></thead>
+      <tbody id="monthly-tbody"><tr><td colspan="8" class="empty">Loading…</td></tr></tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="settings-card">
+    <h3>Connection</h3>
+    <div class="s-row"><span class="sk">Status</span><span class="sv" id="conn-status">Connected</span></div>
+    <div class="s-row"><span class="sk">Last synced</span><span class="sv" id="last-sync-time">—</span></div>
+    <div class="s-row"><span class="sk">Auto-refresh</span><span class="sv">Every 30 seconds</span></div>
+    <div style="margin-top:12px"><button class="btn btn-secondary btn-sm" onclick="resetConnection()">Change Connection URL</button></div>
+  </div>
+  <div class="settings-card">
+    <h3>Inventory &amp; Cost</h3>
+    <div id="settings-alert" class="alert"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Cases Received</label><input type="number" id="s-cases" value="445" min="1"></div>
+      <div class="form-group"><label>Bottles per Case</label><input type="number" id="s-bpc" value="24" min="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cost per Bottle ($)</label><input type="number" id="s-cpb" value="1.56" min="0" step="0.01"></div>
+      <div class="form-group"><label>Low Inventory Alert (cases)</label><input type="number" id="s-thresh" value="50" min="1"></div>
+    </div>
+    <div class="form-group" style="max-width:200px"><label>Giving Percentage (%)</label><input type="number" id="s-givpct" value="10" min="1" max="100"></div>
+    <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+  </div>
+
+  <div class="settings-card">
+    <h3>💳 Payment Processing Fees</h3>
+    <p style="font-size:.78rem;color:var(--g500);margin-bottom:14px">These are deducted from revenue to calculate net profit. Standard rates pre-filled — edit if your plan differs.</p>
+    <table class="fee-table">
+      <thead><tr><th>Method</th><th>% Rate</th><th>Fixed Fee ($)</th><th>Source</th></tr></thead>
+      <tbody id="fee-settings-tbody"></tbody>
+    </table>
+    <button class="btn btn-primary btn-sm" onclick="saveFees()">Save Fee Rates</button>
+    <button class="btn btn-secondary btn-sm" style="margin-left:8px" onclick="resetFees()">Reset to Defaults</button>
+    <div id="fee-alert" class="alert" style="margin-top:12px;margin-bottom:0"></div>
+  </div>
+
+  <div class="settings-card" style="border:1px solid var(--red-l)">
+    <h3 style="color:var(--red)">Danger Zone</h3>
+    <p style="font-size:.78rem;color:var(--g500);margin-bottom:12px">Permanently deletes all transactions from Google Sheets.</p>
+    <button class="btn btn-danger" onclick="confirmClear()">🗑 Clear All Transactions</button>
+  </div>
+</div>
+
+</main>
+
+<div class="overlay" id="del-modal"><div class="modal"><h3>Delete Transaction?</h3><p>Removes from Google Sheets. Cannot be undone.</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('del-modal')">Cancel</button><button class="btn btn-danger" onclick="doDelete()">Delete</button></div></div></div>
+<div class="overlay" id="del-holder-modal"><div class="modal"><h3>Remove Holder?</h3><p>Removes holder and returns bottles to available inventory.</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('del-holder-modal')">Cancel</button><button class="btn btn-danger" onclick="doDeleteHolder()">Remove</button></div></div></div>
+<div class="overlay" id="clear-modal"><div class="modal"><h3>Clear All Transactions?</h3><p>Permanently deletes every transaction. Cannot be undone.</p><div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal('clear-modal')">Cancel</button><button class="btn btn-danger" onclick="clearAll()">Yes, Clear Everything</button></div></div></div>
+
+<script>
+// URL injected when served from Apps Script (blank when opened as local file)
+var INJECTED_SCRIPT_URL = 'https://script.google.com/a/macros/livingwaterco.com/s/AKfycbxXDXM0ZCPdqhoDSjg3z0aY9mS4edA2pVNfR-IqD7nxXq2g04nSVIwE-oGsUuGs9Ig/exec';
+
+// ─── DEFAULT FEES ─────────────────────────────────────────────────────────────
+var DEFAULT_FEES = {
+  Cash:      { pct: 0,    fixed: 0.00, label: 'Cash',      icon: '💵', source: 'No fee' },
+  Check:     { pct: 0,    fixed: 0.00, label: 'Check',     icon: '📝', source: 'No fee' },
+  Card:      { pct: 2.9,  fixed: 0.30, label: 'Card',      icon: '💳', source: 'Standard card rate' },
+  Venmo:     { pct: 1.9,  fixed: 0.10, label: 'Venmo',     icon: '📱', source: 'Venmo Business' },
+  Zelle:     { pct: 0,    fixed: 0.00, label: 'Zelle',     icon: '⚡', source: 'Currently free' },
+  CashApp:   { pct: 2.75, fixed: 0.00, label: 'CashApp',   icon: '💚', source: 'Cash App for Business' },
+  Square:    { pct: 2.6,  fixed: 0.10, label: 'Square',    icon: '🟦', source: 'Square in-person' },
+  Shopify:   { pct: 2.9,  fixed: 0.30, label: 'Shopify',   icon: '🛍️', source: 'Shopify Payments' },
+  'Not Paid':{ pct: 0,    fixed: 0.00, label: 'Not Paid',  icon: '🚫', source: 'No payment yet' }
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+var S = { cases:445, bpc:24, costPerBottle:1.56, alertThreshold:50, givingPct:10,
+          paymentFees: JSON.parse(JSON.stringify(DEFAULT_FEES)), transactions:[], holders:[] };
+var saleMode='cases', holderMode='cases';
+var pendingDeleteId=null, pendingDeleteHolderId=null, scriptUrl='';
+var editingTxId=null; // null = new sale, set = editing existing
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  // Prefer URL injected by Apps Script, then localStorage (local file fallback)
+  scriptUrl = (INJECTED_SCRIPT_URL && INJECTED_SCRIPT_URL.includes('script.google.com'))
+              ? INJECTED_SCRIPT_URL
+              : (localStorage.getItem('lwc-script-url')||'');
+  if (scriptUrl) localStorage.setItem('lwc-script-url', scriptUrl);
+  document.getElementById('f-date').value=today();
+  document.getElementById('h-date').value=today();
+  if (!scriptUrl) showSetup();
+  else { showApp(); loadData(); setInterval(loadData,30000); }
+}
+function showSetup() {
+  document.getElementById('main-nav').style.display='none';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-setup').classList.add('active');
+  setSyncState('error','Not connected');
+}
+function showApp() {
+  document.getElementById('page-setup').classList.remove('active');
+  document.getElementById('main-nav').style.display='flex';
+  showPage('dashboard');
+}
+
+// ─── CONNECT ──────────────────────────────────────────────────────────────────
+async function connectSheet() {
+  var url=document.getElementById('setup-url').value.trim();
+  if (!url||!url.includes('script.google.com')) { showAlert('setup-alert','Please enter a valid Apps Script URL.','error'); return; }
+  document.getElementById('setup-spinner').style.display='inline';
+  try {
+    var d=await api({action:'ping'},url);
+    if (d.ok) { localStorage.setItem('lwc-script-url',url); scriptUrl=url; document.getElementById('setup-spinner').style.display='none'; showApp(); await loadData(); setInterval(loadData,30000); }
+    else throw new Error(d.error||'Unexpected response');
+  } catch(e) { document.getElementById('setup-spinner').style.display='none'; showAlert('setup-alert','❌ '+e.message+' — Check URL and "Anyone" access.','error'); }
+}
+function resetConnection() {
+  if (!confirm('Disconnect?')) return;
+  localStorage.removeItem('lwc-script-url'); scriptUrl=''; showSetup();
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function api(params, urlOverride) {
+  var url=(urlOverride||scriptUrl)+'?'+new URLSearchParams(params).toString();
+  var r=await fetch(url,{redirect:'follow'}); if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
+// ─── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadData() {
+  setSyncState('loading','Syncing…');
+  try {
+    var d=await api({action:'read'});
+    var st=d.settings||{};
+    S.cases=st.cases||445; S.bpc=st.bpc||24;
+    S.costPerBottle=st.costPerBottle||1.56;
+    S.alertThreshold=st.alertThreshold||50;
+    S.givingPct=st.givingPct||10;
+    // Parse fees from API, merge with defaults for any missing keys
+    if (st.paymentFees) {
+      try {
+        var apiF=JSON.parse(st.paymentFees);
+        Object.keys(DEFAULT_FEES).forEach(k=>{ S.paymentFees[k]={...DEFAULT_FEES[k],...(apiF[k]||{})}; });
+      } catch(e) {}
+    }
+    S.transactions=(d.transactions||[]).map(t=>({...t,id:String(t.id),qty:+t.qty,bottles:+t.bottles,amount:+t.amount}));
+    S.holders=(d.holders||[]).map(h=>({...h,id:String(h.id),qty:+h.qty,bottles:+h.bottles}));
+    var now=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    setSyncState('ok','Synced '+now);
+    set('last-sync-time',now);
+    renderAll();
+  } catch(e) { setSyncState('error','Sync failed'); console.error(e); }
+}
+function setSyncState(st,txt) {
+  var d=document.getElementById('sync-dot');
+  d.className='sync-dot'+(st==='loading'?' loading':st==='error'?' error':'');
+  set('sync-text',txt);
+}
+function renderAll() {
+  renderDashboard(); renderTx(); renderHolders(); renderProfits();
+  renderSettingsForm(); renderFeeSettings();
+}
+
+// ─── PROFIT CALC ──────────────────────────────────────────────────────────────
+function feeRate(method) { return S.paymentFees[method]||{pct:0,fixed:0}; }
+function txFee(t)        { var f=feeRate(t.payment); return t.amount>0?t.amount*(f.pct/100)+f.fixed:0; }
+function txCOGS(t)       { return t.bottles*S.costPerBottle; }
+function txGross(t)      { return t.amount-txCOGS(t); }
+function txNet(t)        { return txGross(t)-txFee(t); }
+
+function totals() {
+  var rev=0,cogs=0,fees=0,sold=0;
+  S.transactions.forEach(t=>{ rev+=t.amount; cogs+=txCOGS(t); fees+=txFee(t); sold+=t.bottles; });
+  var net=rev-cogs-fees;
+  return { rev, cogs, fees, net, sold, margin:rev>0?net/rev*100:0, giving:net*(S.givingPct/100) };
+}
+function totalHeld() { return S.holders.filter(h=>h.status==='Holding').reduce((s,h)=>s+h.bottles,0); }
+function inHand()    { return Math.max(0,S.cases*S.bpc-totals().sold-totalHeld()); }
+
+function monthlyData() {
+  var months={};
+  S.transactions.forEach(t=>{
+    var k=String(t.date||'').slice(0,7); if (!k||k.length<7) return;
+    if (!months[k]) months[k]={revenue:0,cogs:0,fees:0,bottles:0,count:0};
+    months[k].revenue+=t.amount; months[k].cogs+=txCOGS(t);
+    months[k].fees+=txFee(t); months[k].bottles+=t.bottles; months[k].count++;
+  });
+  return months;
+}
+function thisMonthKey() { return today().slice(0,7); }
+function monthLabel(k) { var ms=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],p=k.split('-'); return ms[parseInt(p[1])-1]+' '+p[0]; }
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  var T=totals(), held=totalHeld(), hand=inHand(), recv=S.cases*S.bpc;
+  var unpaid=S.transactions.filter(t=>(t.paymentStatus||'Paid')!=='Paid');
+  var unpaidAmt=unpaid.reduce((s,t)=>s+t.amount,0);
+  var mo=thisMonthKey(), moD=monthlyData()[mo]||{revenue:0,cogs:0,fees:0};
+  var moNet=moD.revenue-moD.cogs-moD.fees, moGiving=moNet*(S.givingPct/100);
+
+  set('s-total',recv.toLocaleString()); set('s-total-sub',S.cases+' cases × '+S.bpc);
+  set('s-remain',hand.toLocaleString()); set('s-remain-sub',(hand/S.bpc).toFixed(1)+' cases equiv.');
+  set('s-held',held.toLocaleString()); set('s-held-sub',S.holders.filter(h=>h.status==='Holding').length+' holder(s)');
+  set('s-sold',T.sold.toLocaleString()); set('s-sold-sub',(T.sold/S.bpc).toFixed(1)+' cases equiv.');
+  set('s-rev','$'+fmt(T.rev)); set('s-tx',S.transactions.length+' transactions');
+  set('s-fees','$'+fmt(T.fees)); set('s-fees-sub','across '+S.transactions.length+' sales');
+  set('s-profit','$'+fmt(T.net)); set('s-margin',T.margin.toFixed(1)+'% net margin');
+  set('s-unpaid','$'+fmt(unpaidAmt)); set('s-unpaid-sub',unpaid.length+' open invoice'+(unpaid.length!==1?'s':''));
+  set('d-giv-pct',S.givingPct); set('giving-pct',S.givingPct);
+  set('s-giving-mo','$'+fmt(moGiving)); set('s-giving-total','$'+fmt(T.giving)+' total');
+  set('giving-h3',monthLabel(mo)+' Giving'); set('giving-big','$'+fmt(moGiving));
+  set('giving-small','$'+fmt(T.giving)+' total to date');
+
+  // Alert
+  var casesLeft=hand/S.bpc, ab=document.getElementById('inv-alert');
+  if (casesLeft<S.alertThreshold) {
+    set('inv-alert-txt','Low inventory: '+hand.toLocaleString()+' bottles ('+casesLeft.toFixed(0)+' cases) remaining.');
+    ab.className='alert-banner '+(casesLeft<10?'danger':'warn')+' show';
+  } else { ab.classList.remove('show'); }
+
+  // Progress
+  if (recv>0) {
+    var ps=T.sold/recv*100, ph=held/recv*100, pr=hand/recv*100;
+    document.getElementById('prog-sold').style.cssText='background:var(--amber);left:0;width:'+ps+'%';
+    document.getElementById('prog-held').style.cssText='background:var(--purple);left:'+ps+'%;width:'+ph+'%';
+    document.getElementById('prog-remain').style.cssText='background:var(--blue);left:'+(ps+ph)+'%;width:'+pr+'%';
+  }
+  set('leg-remain',hand.toLocaleString()+' in hand');
+  set('leg-held',held.toLocaleString()+' with holders');
+  set('leg-sold',T.sold.toLocaleString()+' sold');
+
+  var recent=[...S.transactions].reverse().slice(0,7);
+  var tb=document.getElementById('recent-tbody');
+  if (!recent.length) { tb.innerHTML='<tr><td colspan="10" class="empty">No transactions yet.</td></tr>'; return; }
+  tb.innerHTML=recent.map(t=>{
+    var cogs=txCOGS(t), fee=txFee(t), net=txNet(t);
+    return `<tr>
+      <td>${fmtDate(t.date)}</td>
+      <td><strong>${esc(t.name)}</strong>${t.orgName?'<br><span style="font-size:.67rem;color:var(--g500)">'+esc(t.orgName)+'</span>':''}</td>
+      <td>${byBadge(t.addedBy)}</td>
+      <td class="right">${t.bottles}</td>
+      <td class="right">$${t.amount.toFixed(2)}</td>
+      <td class="right" style="color:var(--amber)">-$${cogs.toFixed(2)}</td>
+      <td class="right" style="color:var(--indigo)">-$${fee.toFixed(2)}</td>
+      <td class="right" style="color:${net>=0?'var(--green)':'var(--red)'}"><strong>${net>=0?'+':''} $${net.toFixed(2)}</strong></td>
+      <td>${payBadge(t.payment)}</td>
+      <td>${psBadge(t.paymentStatus)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SALE FORM ────────────────────────────────────────────────────────────────
+// Auto-set "Unpaid" status when "Not Paid" method is chosen
+function onPaymentChange() {
+  var pay=gv('f-payment');
+  if (pay==='Not Paid') { sv('f-pstatus','Unpaid'); }
+  updateHint();
+}
+
+// ─── EDIT MODE ────────────────────────────────────────────────────────────────
+function startEdit(id) {
+  var t=S.transactions.find(x=>x.id===String(id)); if (!t) return;
+  editingTxId=id;
+  showPage('add-sale');
+  set('form-title','✏️ Edit Transaction');
+  document.getElementById('edit-banner').style.display='block';
+  document.getElementById('save-btn').textContent='💾 Update Transaction';
+  document.getElementById('cancel-edit-btn').style.display='inline-flex';
+  document.getElementById('clear-btn').style.display='none';
+  // Fill form
+  sv('f-name',t.name||''); sv('f-email',t.email||''); sv('f-address',t.address||'');
+  sv('f-org',t.org||''); sv('f-org-name',t.orgName||'');
+  sv('f-qty',t.qty); sv('f-amount',t.amount.toFixed(2));
+  sv('f-payment',t.payment||''); sv('f-pstatus',t.paymentStatus||'Paid');
+  sv('f-date',t.date||today()); sv('f-by',t.addedBy||'Me'); sv('f-notes',t.notes||'');
+  setMode(t.mode||'cases'); updateHint();
+}
+function cancelEdit() {
+  editingTxId=null; clearForm(true);
+}
+function setEditUI(editing) {
+  set('form-title', editing ? '✏️ Edit Transaction' : 'Sale Details');
+  document.getElementById('edit-banner').style.display=editing?'block':'none';
+  document.getElementById('save-btn').textContent=editing?'💾 Update Transaction':'💾 Save Sale';
+  document.getElementById('cancel-edit-btn').style.display=editing?'inline-flex':'none';
+  document.getElementById('clear-btn').style.display=editing?'none':'inline-flex';
+}
+
+function setMode(m) {
+  saleMode=m;
+  document.getElementById('tog-cases').classList.toggle('active',m==='cases');
+  document.getElementById('tog-singles').classList.toggle('active',m==='singles');
+  set('qty-lbl',m==='cases'?'Number of Cases *':'Number of Bottles *');
+  document.getElementById('qty-hint').style.display=m==='cases'?'block':'none';
+  updateHint();
+}
+function updateHint() {
+  var q=parseInt(gv('f-qty'))||0, a=parseFloat(gv('f-amount'))||0, pay=gv('f-payment');
+  var bottles=saleMode==='cases'?q*S.bpc:q;
+  if (saleMode==='cases') set('qty-bottles',(q*S.bpc).toLocaleString());
+  var hint=document.getElementById('profit-hint');
+  if (!q||!a) { hint.classList.remove('show'); return; }
+  hint.classList.add('show');
+  var cogs=bottles*S.costPerBottle;
+  var fee=pay?a*(feeRate(pay).pct/100)+(a>0?feeRate(pay).fixed:0):0;
+  var net=a-cogs-fee;
+  var giving=net*(S.givingPct/100);
+  set('ph-rev','$'+a.toFixed(2));
+  set('ph-cogs','-$'+cogs.toFixed(2));
+  set('ph-cpb','$'+S.costPerBottle.toFixed(2));
+  set('ph-fee-lbl','Processing fee'+(pay?' ('+pay+' '+feeRate(pay).pct.toFixed(2)+'%'+(feeRate(pay).fixed>0?'+$'+feeRate(pay).fixed.toFixed(2):'')+')':''));
+  set('ph-fee',fee>0?'-$'+fee.toFixed(2):'$0.00');
+  set('ph-profit',(net>=0?'+':'')+' $'+net.toFixed(2));
+  set('ph-givpct',S.givingPct);
+  set('ph-giving','$'+giving.toFixed(2));
+  document.getElementById('ph-profit').style.color=net>=0?'var(--green)':'var(--red)';
+}
+
+async function saveSale() {
+  var name=gv('f-name'),email=gv('f-email'),address=gv('f-address'),org=gv('f-org'),orgName=gv('f-org-name');
+  var qty=parseInt(gv('f-qty')),amount=parseFloat(gv('f-amount')),payment=gv('f-payment');
+  var pstatus=gv('f-pstatus'),date=gv('f-date'),addedBy=gv('f-by'),notes=gv('f-notes');
+  if (!name||!org||!qty||isNaN(amount)||!payment||!date) { showAlert('sale-alert','Please fill in all required fields (*).','error'); return; }
+  var bottles=saleMode==='cases'?qty*S.bpc:qty;
+  var btn=document.getElementById('save-btn'); btn.disabled=true;
+
+  if (editingTxId) {
+    // UPDATE existing transaction
+    btn.textContent='Updating…';
+    var tx={id:editingTxId,date,name,email,address,org,orgName,mode:saleMode,qty,bottles,amount,payment,paymentStatus:pstatus,notes,addedBy};
+    try {
+      await api({action:'update',tx:JSON.stringify(tx)});
+      var fee=txFee(tx), net=txNet(tx);
+      showAlert('sale-alert','✅ Updated! Net profit: $'+net.toFixed(2)+' (after $'+fee.toFixed(2)+' '+payment+' fee)','success');
+      editingTxId=null; setEditUI(false); clearForm(false); await loadData();
+    } catch(e) { showAlert('sale-alert','❌ Failed: '+e.message,'error'); }
+    btn.disabled=false; btn.textContent='💾 Update Transaction';
+  } else {
+    // NEW transaction
+    btn.textContent='Saving…';
+    if (bottles>inHand()) { showAlert('sale-alert','Not enough in hand! Only '+inHand()+' bottles available.','error'); btn.disabled=false; btn.textContent='💾 Save Sale'; return; }
+    var tx={id:Date.now().toString(),date,name,email,address,org,orgName,mode:saleMode,qty,bottles,amount,payment,paymentStatus:pstatus,notes,addedBy};
+    try {
+      await api({action:'add',tx:JSON.stringify(tx)});
+      var fee=txFee(tx), net=txNet(tx);
+      showAlert('sale-alert','✅ Saved! Net profit: $'+net.toFixed(2)+' (after $'+fee.toFixed(2)+' '+payment+' fee) · Giving: $'+(net*(S.givingPct/100)).toFixed(2),'success');
+      clearForm(false); await loadData();
+    } catch(e) { showAlert('sale-alert','❌ Failed: '+e.message,'error'); }
+    btn.disabled=false; btn.textContent='💾 Save Sale';
+  }
+}
+
+function clearForm(hide) {
+  ['f-name','f-email','f-address','f-org-name','f-qty','f-amount','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-org','f-payment'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-pstatus').value='Paid';
+  document.getElementById('f-date').value=today();
+  document.getElementById('f-by').value='Me';
+  setMode('cases');
+  document.getElementById('nl-text').value='';
+  document.getElementById('nl-preview').style.display='none';
+  document.getElementById('profit-hint').classList.remove('show');
+  if (hide!==false) document.getElementById('sale-alert').classList.remove('show');
+  // Reset edit mode UI
+  if (!editingTxId) setEditUI(false);
+  editingTxId=null;
+}
+
+// ─── NL PARSER ────────────────────────────────────────────────────────────────
+function parseNL() {
+  var text=document.getElementById('nl-text').value.trim(); if (!text) return;
+  var r={};
+  if (/\bcole\b/i.test(text)) r.addedBy='Cole'; else r.addedBy='Me';
+  if (/\bunpaid\b|\bnot\s+paid\b|\bowing\b/i.test(text)) r.paymentStatus='Unpaid';
+  else if (/\bpartial\b|\bhalf\b/i.test(text)) r.paymentStatus='Partial';
+  else r.paymentStatus='Paid';
+  var amtM=text.match(/\$\s*([\d,]+(?:\.\d{1,2})?)/)||text.match(/([\d,]+(?:\.\d{1,2})?)\s*dollars?/i)||text.match(/paid\s+([\d,]+(?:\.\d{1,2})?)/i)||text.match(/for\s+([\d,]+(?:\.\d{1,2})?)/i);
+  if (amtM) r.amount=parseFloat(amtM[1].replace(/,/g,''));
+  var cM=text.match(/(\d+)\s*cases?/i),bM=text.match(/(\d+)\s*(?:single\s*)?bottles?/i)||text.match(/(\d+)\s*singles?/i);
+  if (cM) { r.qty=parseInt(cM[1]); r.mode='cases'; }
+  else if (/\ba\s+case\b/i.test(text)) { r.qty=1; r.mode='cases'; }
+  else if (bM) { r.qty=parseInt(bM[1]); r.mode='singles'; }
+  else if (/single\s*bottle|one\s*bottle/i.test(text)) { r.qty=1; r.mode='singles'; }
+  var pays=[
+    [/cash\s*app|cashapp/i,'CashApp'],[/\bcash\b/i,'Cash'],[/\bcheck\b/i,'Check'],
+    [/\bcard\b|\bcredit\b|\bdebit\b/i,'Card'],[/\bvenmo\b/i,'Venmo'],[/\bzelle\b/i,'Zelle'],
+    [/\bshopify\b/i,'Shopify'],[/\bsquare\b/i,'Square']
+  ];
+  for (var p of pays) { if (p[0].test(text)) { r.payment=p[1]; break; } }
+  if (/\bchurch\b|\bministry\b|\bcongregation\b|\bfellowship\b/i.test(text)) r.org='Church';
+  else if (/\bnonprofit\b|\bnon-profit\b|\bcharity\b|\bfoundation\b/i.test(text)) r.org='Nonprofit / Other';
+  else if (/\bbusiness\b|\bcompany\b|\bcorp\b|\bllc\b|\binc\b|\bstore\b|\bshop\b/i.test(text)) r.org='Business';
+  else r.org='Individual';
+  var em=text.match(/[\w.+-]+@[\w.-]+\.\w+/); if (em) r.email=em[0];
+  var orgP=[/(?:to|for|at|from)\s+([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)+ (?:Church|Ministry|Business|Company|LLC|Inc|Foundation|Fellowship))/,/([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)+ (?:Church|Ministry|Fellowship|LLC|Inc|Company|Foundation))/];
+  for (var op of orgP) { var om=text.match(op); if (om) { r.orgName=om[1].trim(); break; } }
+  var nc=text.replace(/sold|paid|cash|check|card|venmo|zelle|cashapp|square|shopify|church|business|ministry|nonprofit|cases?|bottles?|singles?|cole|me|\d+|\$|dollars?|for|from|at|to|by|with|via|unpaid|partial/gi,' ').replace(/\s+/g,' ').trim();
+  var nm=nc.match(/\b([A-Z][a-z]{1,14}(?:\s+[A-Z][a-z]{1,14})+)\b/); if (nm) r.name=nm[1];
+  if (r.name) sv('f-name',r.name); if (r.email) sv('f-email',r.email);
+  if (r.orgName) sv('f-org-name',r.orgName); if (r.org) sv('f-org',r.org);
+  if (r.qty) sv('f-qty',r.qty); if (r.mode) setMode(r.mode);
+  if (r.amount!=null) sv('f-amount',r.amount.toFixed(2));
+  if (r.payment) sv('f-payment',r.payment);
+  if (r.paymentStatus) sv('f-pstatus',r.paymentStatus);
+  if (r.addedBy) sv('f-by',r.addedBy);
+  updateHint();
+  var prev=[{k:'Name',v:r.name,req:true},{k:'Email',v:r.email,req:false},{k:'Org',v:r.org,req:true},{k:'Org Name',v:r.orgName,req:false},{k:'Mode',v:r.mode,req:true},{k:'Qty',v:r.qty,req:true},{k:'Amount',v:r.amount!=null?'$'+r.amount.toFixed(2):null,req:true},{k:'Payment',v:r.payment,req:true},{k:'Paid?',v:r.paymentStatus,req:true},{k:'By',v:r.addedBy}];
+  document.getElementById('nl-fields').innerHTML=prev.map(f=>{var miss=f.req&&!f.v; return '<div class="nl-field'+(miss?' missing':'')+'"><span>'+f.k+'</span><strong>'+(f.v!=null?esc(String(f.v)):(miss?'⚠ Missing':'—'))+'</strong></div>';}).join('');
+  document.getElementById('nl-preview').style.display='block';
+}
+
+// ─── TRANSACTIONS ─────────────────────────────────────────────────────────────
+function renderTx() {
+  var search=gid('search')?gid('search').value.toLowerCase():'';
+  var fT=gv2('filt-type'),fP=gv2('filt-pstatus'),fPay=gv2('filt-pay'),fB=gv2('filt-by');
+  var txs=[...S.transactions].reverse();
+  if (search) txs=txs.filter(t=>[t.name,t.email,t.orgName,t.address].some(x=>x&&x.toLowerCase().includes(search)));
+  if (fT) txs=txs.filter(t=>t.org===fT);
+  if (fP) txs=txs.filter(t=>(t.paymentStatus||'Paid')===fP);
+  if (fPay) txs=txs.filter(t=>t.payment===fPay);
+  if (fB) txs=txs.filter(t=>(t.addedBy||'Me')===fB);
+  var tb=document.getElementById('tx-tbody');
+  if (!txs.length) { tb.innerHTML='<tr><td colspan="15" class="empty">No transactions found.</td></tr>'; return; }
+  tb.innerHTML=txs.map(t=>{
+    var cogs=txCOGS(t), fee=txFee(t), net=txNet(t);
+    return `<tr>
+      <td style="white-space:nowrap">${fmtDate(t.date)}</td>
+      <td><strong>${esc(t.name)}</strong></td>
+      <td>${orgBadge(t.org)}</td>
+      <td>${byBadge(t.addedBy)}</td>
+      <td><span class="badge ${t.mode==='cases'?'b-blue':'b-amber'}">${t.mode==='cases'?'Case':'Single'}</span></td>
+      <td class="right">${t.bottles}</td>
+      <td class="right">$${t.amount.toFixed(2)}</td>
+      <td class="right" style="color:var(--amber)">-$${cogs.toFixed(2)}</td>
+      <td class="right" style="color:var(--indigo)" title="${t.payment} fee: ${feeRate(t.payment).pct}%${feeRate(t.payment).fixed>0?'+$'+feeRate(t.payment).fixed.toFixed(2):''}">-$${fee.toFixed(2)}</td>
+      <td class="right" style="color:${net>=0?'var(--green)':'var(--red)'}"><strong>${net>=0?'+':''} $${net.toFixed(2)}</strong></td>
+      <td>${payBadge(t.payment)}</td>
+      <td>${psBadge(t.paymentStatus)}${(t.paymentStatus||'Paid')!=='Paid'?'<br><button class="btn btn-green btn-xs" style="margin-top:3px" onclick="markPaid(\''+t.id+'\')">Mark Paid</button>':''}</td>
+      <td style="max-width:90px;font-size:.7rem;color:var(--g500)">${esc(t.notes||'')}</td>
+      <td><button class="btn btn-teal btn-xs" onclick="startEdit('${t.id}')">✏️ Edit</button></td>
+      <td><button class="del-btn" onclick="askDelete('${t.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function markPaid(id) { try { await api({action:'markPaid',id,status:'Paid'}); await loadData(); } catch(e) { alert('Failed: '+e.message); } }
+
+// ─── PROFITS ──────────────────────────────────────────────────────────────────
+function renderProfits() {
+  var T=totals();
+  set('p-rev','$'+fmt(T.rev));
+  set('p-cogs','-$'+fmt(T.cogs)); set('p-cogs-sub','@ $'+S.costPerBottle.toFixed(2)+'/bottle');
+  set('p-fees','-$'+fmt(T.fees));
+  set('p-profit','$'+fmt(T.net)); set('p-margin-lbl',T.margin.toFixed(1)+'% net margin');
+  set('p-per-bottle',T.sold>0?'$'+(T.net/T.sold).toFixed(2):'—');
+  set('p-giving','$'+fmt(T.giving)); set('p-giv-pct',S.givingPct); set('tbl-pct',S.givingPct);
+
+  // Fee breakdown by method
+  var methods={};
+  S.transactions.forEach(t=>{
+    var m=t.payment||'Unknown'; if (!methods[m]) methods[m]={count:0,revenue:0,fees:0};
+    methods[m].count++; methods[m].revenue+=t.amount; methods[m].fees+=txFee(t);
+  });
+  var fbTb=document.getElementById('fee-breakdown-tbody');
+  var mKeys=Object.keys(methods).sort((a,b)=>methods[b].fees-methods[a].fees);
+  if (!mKeys.length) { fbTb.innerHTML='<tr><td colspan="6" class="empty">No data yet.</td></tr>'; }
+  else {
+    var totalFeeRow=mKeys.reduce((s,k)=>s+methods[k].fees,0);
+    fbTb.innerHTML=mKeys.map(m=>{
+      var d=methods[m], pct=d.revenue>0?d.fees/d.revenue*100:0;
+      var f=feeRate(m); var rateStr=f.pct>0?f.pct.toFixed(2)+'%'+(f.fixed>0?'+$'+f.fixed.toFixed(2):''):'Free';
+      return `<tr>
+        <td>${(DEFAULT_FEES[m]&&DEFAULT_FEES[m].icon)||'💳'} <strong>${esc(m)}</strong><br><span style="font-size:.68rem;color:var(--g500)">${rateStr}</span></td>
+        <td><span class="badge b-gray">${rateStr}</span></td>
+        <td class="right">${d.count}</td>
+        <td class="right">$${fmt(d.revenue)}</td>
+        <td class="right" style="color:var(--indigo)"><strong>-$${fmt(d.fees)}</strong></td>
+        <td class="right">${pct.toFixed(2)}%</td>
+      </tr>`;
+    }).join('')+`<tr class="total-row"><td colspan="4">TOTAL PROCESSING FEES</td><td class="right" style="color:var(--red)"><strong>-$${fmt(totalFeeRow)}</strong></td><td class="right">${T.rev>0?(totalFeeRow/T.rev*100).toFixed(2):'0.00'}%</td></tr>`;
+  }
+
+  // Aging
+  var today_ts=new Date().setHours(0,0,0,0);
+  var unpaid=S.transactions.filter(t=>(t.paymentStatus||'Paid')!=='Paid').map(t=>({...t,days:Math.floor((today_ts-new Date(t.date+'T00:00:00'))/86400000)})).sort((a,b)=>b.days-a.days);
+  var a0=unpaid.filter(t=>t.days<=30),a30=unpaid.filter(t=>t.days>30&&t.days<=60),a60=unpaid.filter(t=>t.days>60&&t.days<=90),a90=unpaid.filter(t=>t.days>90);
+  var tot=unpaid.reduce((s,t)=>s+t.amount,0);
+  set('aging-total',unpaid.length?'$'+fmt(tot)+' owed · '+unpaid.length+' invoice'+(unpaid.length!==1?'s':''):'');
+  document.getElementById('aging-grid').innerHTML=[{cls:'a0',lbl:'1–30 Days',items:a0},{cls:'a30',lbl:'31–60 Days',items:a30},{cls:'a60',lbl:'61–90 Days',items:a60},{cls:'a90',lbl:'90+ Days',items:a90}].map(g=>`<div class="aging-card ${g.cls}"><div class="aval">${g.items.length}</div><div class="albl">${g.lbl}<br>$${fmt(g.items.reduce((s,t)=>s+t.amount,0))}</div></div>`).join('');
+  var aTb=document.getElementById('aging-tbody');
+  if (!unpaid.length) { aTb.innerHTML='<tr><td colspan="7" class="empty">No unpaid invoices 🎉</td></tr>'; }
+  else { aTb.innerHTML=unpaid.map(t=>{ var ac=t.days>90?'b-red':t.days>60?'b-orange':t.days>30?'b-amber':'b-green',al=t.days>90?'90+ days':t.days>60?'60+ days':t.days>30?'30+ days':'Recent'; return `<tr><td><strong>${esc(t.name)}</strong>${t.orgName?'<br><span style="font-size:.67rem;color:var(--g500)">'+esc(t.orgName)+'</span>':''}</td><td>${orgBadge(t.org)}</td><td>${fmtDate(t.date)}</td><td>${t.days} days</td><td class="right"><strong>$${t.amount.toFixed(2)}</strong></td><td><span class="badge ${ac}">${al}</span></td><td><button class="btn btn-green btn-xs" onclick="markPaid('${t.id}')">Mark Paid</button></td></tr>`; }).join(''); }
+
+  // Monthly table
+  var months=monthlyData(), keys=Object.keys(months).sort();
+  var tb=document.getElementById('monthly-tbody');
+  if (!keys.length) { tb.innerHTML='<tr><td colspan="8" class="empty">No transactions yet.</td></tr>'; return; }
+  var tRev=0,tCogs=0,tFees=0,tNet=0,tGiving=0,tSales=0;
+  var rows=keys.map(k=>{
+    var m=months[k],mn=m.revenue-m.cogs-m.fees,mg=mn*(S.givingPct/100),mm=m.revenue>0?mn/m.revenue*100:0;
+    tRev+=m.revenue;tCogs+=m.cogs;tFees+=m.fees;tNet+=mn;tGiving+=mg;tSales+=m.count;
+    var cur=k===thisMonthKey();
+    return `<tr${cur?' style="background:var(--blue-l)"':''}>
+      <td><strong>${monthLabel(k)}</strong>${cur?' <span class="badge b-blue">current</span>':''}</td>
+      <td class="right">${m.count}</td>
+      <td class="right">$${fmt(m.revenue)}</td>
+      <td class="right" style="color:var(--amber)">-$${fmt(m.cogs)}</td>
+      <td class="right" style="color:var(--indigo)">-$${fmt(m.fees)}</td>
+      <td class="right" style="color:${mn>=0?'var(--green)':'var(--red)'}"><strong>${mn>=0?'+':''} $${fmt(mn)}</strong></td>
+      <td class="right">${mm.toFixed(1)}%</td>
+      <td class="right" style="color:var(--green)"><strong>$${fmt(mg)}</strong></td>
+    </tr>`;
+  }).join('');
+  var tMargin=tRev>0?tNet/tRev*100:0;
+  tb.innerHTML=rows+`<tr class="total-row"><td>TOTAL</td><td class="right">${tSales}</td><td class="right">$${fmt(tRev)}</td><td class="right" style="color:var(--amber)">-$${fmt(tCogs)}</td><td class="right" style="color:var(--indigo)">-$${fmt(tFees)}</td><td class="right" style="color:var(--green)"><strong>$${fmt(tNet)}</strong></td><td class="right">${tMargin.toFixed(1)}%</td><td class="right" style="color:var(--green)"><strong>$${fmt(tGiving)}</strong></td></tr>`;
+}
+
+// ─── SETTINGS FORM ────────────────────────────────────────────────────────────
+function renderSettingsForm() {
+  sv('s-cases',S.cases); sv('s-bpc',S.bpc);
+  sv('s-cpb',S.costPerBottle.toFixed(2)); sv('s-thresh',S.alertThreshold);
+  sv('s-givpct',S.givingPct);
+}
+
+function renderFeeSettings() {
+  var methods=['Cash','Check','Card','Venmo','Zelle','CashApp','Square','Shopify','Not Paid'];
+  document.getElementById('fee-settings-tbody').innerHTML=methods.map(m=>{
+    var f=S.paymentFees[m]||DEFAULT_FEES[m]||{pct:0,fixed:0};
+    var icon=(DEFAULT_FEES[m]&&DEFAULT_FEES[m].icon)||'💳';
+    var source=(DEFAULT_FEES[m]&&DEFAULT_FEES[m].source)||'';
+    return `<tr>
+      <td><span class="fee-icon">${icon}</span><strong>${m}</strong><br><span class="fee-source">${source}</span></td>
+      <td><input type="number" id="fee-pct-${m}" value="${f.pct.toFixed(3)}" min="0" max="100" step="0.001"> <span style="font-size:.78rem;color:var(--g500)">%</span></td>
+      <td><span style="font-size:.78rem;color:var(--g500)">$</span> <input type="number" id="fee-fix-${m}" value="${f.fixed.toFixed(2)}" min="0" step="0.01"></td>
+      <td style="font-size:.72rem;color:var(--g500)">${f.pct>0?f.pct.toFixed(2)+'%'+(f.fixed>0?'+$'+f.fixed.toFixed(2):''): f.fixed>0?'$'+f.fixed.toFixed(2):'Free'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function saveFees() {
+  var methods=['Cash','Check','Card','Venmo','Zelle','CashApp','Square','Shopify','Not Paid'];
+  var fees={};
+  methods.forEach(m=>{
+    var pct=parseFloat(document.getElementById('fee-pct-'+m).value)||0;
+    var fix=parseFloat(document.getElementById('fee-fix-'+m).value)||0;
+    fees[m]={pct,fixed:fix,label:(DEFAULT_FEES[m]&&DEFAULT_FEES[m].label)||m,icon:(DEFAULT_FEES[m]&&DEFAULT_FEES[m].icon)||'💳',source:(DEFAULT_FEES[m]&&DEFAULT_FEES[m].source)||''};
+  });
+  try {
+    await api({action:'settings',paymentFees:JSON.stringify(fees)});
+    S.paymentFees=fees; renderAll();
+    showAlert('fee-alert','✅ Fee rates saved and applied!','success');
+  } catch(e) { showAlert('fee-alert','❌ Failed: '+e.message,'error'); }
+}
+function resetFees() {
+  S.paymentFees=JSON.parse(JSON.stringify(DEFAULT_FEES));
+  renderFeeSettings(); renderAll();
+  showAlert('fee-alert','Rates reset to defaults. Click "Save Fee Rates" to apply.','success');
+}
+
+async function saveSettings() {
+  var c=parseInt(gv('s-cases')),b=parseInt(gv('s-bpc')),cpb=parseFloat(gv('s-cpb')),thresh=parseInt(gv('s-thresh')),gp=parseFloat(gv('s-givpct'));
+  if (!c||!b||!cpb||!thresh||!gp) { showAlert('settings-alert','Please enter valid numbers.','error'); return; }
+  try { await api({action:'settings',cases:c,bpc:b,costPerBottle:cpb,alertThreshold:thresh,givingPct:gp}); await loadData(); showAlert('settings-alert','✅ Settings saved!','success'); }
+  catch(e) { showAlert('settings-alert','❌ Failed: '+e.message,'error'); }
+}
+function confirmClear() { document.getElementById('clear-modal').classList.add('open'); }
+async function clearAll() { closeModal('clear-modal'); for (var t of S.transactions) { try { await api({action:'delete',id:t.id}); } catch(e) {} } await loadData(); }
+
+// ─── HOLDERS ──────────────────────────────────────────────────────────────────
+var holderFormOpen=false;
+function toggleHolderForm() { holderFormOpen=!holderFormOpen; document.getElementById('holder-form-wrap').style.display=holderFormOpen?'block':'none'; }
+function setHMode(m) { holderMode=m; document.getElementById('ht-cases').classList.toggle('active',m==='cases'); document.getElementById('ht-singles').classList.toggle('active',m==='singles'); set('h-qty-lbl',m==='cases'?'Number of Cases *':'Number of Bottles *'); document.getElementById('h-qty-hint').style.display=m==='cases'?'block':'none'; updateHHint(); }
+function updateHHint() { if (holderMode==='cases') set('h-qty-btl',((parseInt(gv('h-qty'))||0)*S.bpc).toLocaleString()); }
+async function saveHolder() {
+  var name=gv('h-name'),phone=gv('h-phone'),email=gv('h-email'),address=gv('h-address'),qty=parseInt(gv('h-qty')),date=gv('h-date'),notes=gv('h-notes');
+  if (!name||!qty||!date) { showAlert('holder-alert','Name, quantity, and date are required.','error'); return; }
+  var bottles=holderMode==='cases'?qty*S.bpc:qty;
+  if (bottles>inHand()) { showAlert('holder-alert','Not enough in hand!','error'); return; }
+  var h={id:Date.now().toString(),name,phone,email,address,mode:holderMode,qty,bottles,dateGiven:date,notes,status:'Holding'};
+  var btn=document.getElementById('holder-save-btn'); btn.disabled=true; btn.textContent='Saving…';
+  try { await api({action:'addHolder',h:JSON.stringify(h)}); showAlert('holder-alert','✅ Added '+name+' holding '+bottles+' bottles.','success'); ['h-name','h-phone','h-email','h-address','h-qty','h-notes'].forEach(id=>document.getElementById(id).value=''); document.getElementById('h-date').value=today(); setHMode('cases'); await loadData(); }
+  catch(e) { showAlert('holder-alert','❌ Failed: '+e.message,'error'); }
+  btn.disabled=false; btn.textContent='💾 Save Holder';
+}
+function renderHolders() {
+  var list=document.getElementById('holders-list');
+  if (!S.holders.length) { list.innerHTML='<p class="empty">No holders yet.</p>'; return; }
+  var active=S.holders.filter(h=>h.status==='Holding'), returned=S.holders.filter(h=>h.status!=='Holding');
+  var html='';
+  if (active.length) html+='<p style="font-size:.72rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Currently Holding ('+active.length+')</p><div class="holder-grid">'+active.map(holderCard).join('')+'</div>';
+  if (returned.length) html+='<p style="font-size:.72rem;font-weight:700;color:var(--g500);text-transform:uppercase;letter-spacing:.05em;margin:16px 0 10px">Returned</p><div class="holder-grid">'+returned.map(holderCard).join('')+'</div>';
+  list.innerHTML=html;
+}
+function holderCard(h) {
+  var isA=h.status==='Holding';
+  return `<div class="holder-card${isA?'':' returned'}"><div class="hname">${esc(h.name)}</div><div class="hbottles">${h.mode==='cases'?h.qty+' case'+(h.qty>1?'s':'')+' ('+h.bottles+' bottles)':h.bottles+' bottle'+(h.bottles>1?'s':'')} · ${fmtDate(h.dateGiven)}</div><div class="hdetails">${h.phone?'📞 '+esc(h.phone)+'<br>':''}${h.email?'✉️ '+esc(h.email)+'<br>':''}${h.address?'📍 '+esc(h.address)+'<br>':''}${h.notes?'📝 '+esc(h.notes):''}</div><div class="holder-actions">${isA?'<button class="btn btn-teal btn-sm" onclick="markHolderReturned(\''+h.id+'\')">✓ Returned</button>':'<span class="badge b-gray">'+esc(h.status)+'</span>'}<button class="btn btn-danger btn-sm" onclick="askDeleteHolder(\''+h.id+'\')">Remove</button></div></div>`;
+}
+async function markHolderReturned(id) { try { await api({action:'updateHolder',id,status:'Returned'}); await loadData(); } catch(e) { alert('Failed: '+e.message); } }
+function askDeleteHolder(id) { pendingDeleteHolderId=id; document.getElementById('del-holder-modal').classList.add('open'); }
+async function doDeleteHolder() { closeModal('del-holder-modal'); try { await api({action:'deleteHolder',id:pendingDeleteHolderId}); await loadData(); } catch(e) { alert('Failed: '+e.message); } }
+
+// ─── DELETE ───────────────────────────────────────────────────────────────────
+function askDelete(id) { pendingDeleteId=id; document.getElementById('del-modal').classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); pendingDeleteId=pendingDeleteHolderId=null; }
+async function doDelete() { closeModal('del-modal'); try { await api({action:'delete',id:pendingDeleteId}); await loadData(); } catch(e) { alert('Delete failed: '+e.message); } }
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!S.transactions.length) { alert('No transactions to export.'); return; }
+  var hdrs=['Date','Name','Email','Address','Org Type','Org Name','By','Mode','Qty','Bottles','Revenue','COGS','Proc Fee','Net Profit','Payment','Fee Rate','Payment Status','Notes'];
+  var rows=S.transactions.map(t=>{ var cogs=txCOGS(t),fee=txFee(t),net=txNet(t),f=feeRate(t.payment),rate=f.pct.toFixed(2)+'%'+(f.fixed>0?'+$'+f.fixed.toFixed(2):''); return [t.date,t.name,t.email,t.address,t.org,t.orgName,t.addedBy||'Me',t.mode,t.qty,t.bottles,t.amount.toFixed(2),cogs.toFixed(2),fee.toFixed(2),net.toFixed(2),t.payment,rate,t.paymentStatus||'Paid',t.notes].map(x=>'"'+String(x||'').replace(/"/g,'""')+'"'); });
+  var csv=[hdrs.join(','),...rows.map(r=>r.join(','))].join('\n');
+  var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='livingwaterco-'+today()+'.csv'; a.click();
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  var pages=['dashboard','add-sale','transactions','holders','profits','settings'];
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('nav button')[pages.indexOf(name)].classList.add('active');
+  if (name==='transactions') renderTx();
+  if (name==='profits') renderProfits();
+  if (name==='holders') renderHolders();
+  if (name==='settings') { renderSettingsForm(); renderFeeSettings(); }
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function gv(id)    { return document.getElementById(id).value.trim(); }
+function gv2(id)   { var e=document.getElementById(id); return e?e.value:''; }
+function gid(id)   { return document.getElementById(id); }
+function sv(id,v)  { var e=document.getElementById(id); if(e) e.value=v; }
+function set(id,v) { var e=document.getElementById(id); if(e) e.textContent=v; }
+function today()   { return new Date().toISOString().split('T')[0]; }
+function fmt(n)    { return Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s)    { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(d){ if(!d) return '—'; var p=String(d).split('-'); return p[1]+'/'+p[2]+'/'+p[0]; }
+function orgBadge(o){ var m={Church:'b-green',Business:'b-blue',Individual:'b-gray','Nonprofit / Other':'b-amber'}; return '<span class="badge '+(m[o]||'b-gray')+'">'+esc(o||'—')+'</span>'; }
+function payBadge(p){ var m={Cash:'b-green',Check:'b-amber',Card:'b-blue',Venmo:'b-blue',Zelle:'b-blue',CashApp:'b-green',Square:'b-teal',Shopify:'b-indigo'}; return '<span class="badge '+(m[p]||'b-gray')+'">'+esc(p||'—')+'</span>'; }
+function byBadge(b) { return b==='Cole'?'<span class="badge b-purple">Cole</span>':'<span class="badge b-gray">Me</span>'; }
+function psBadge(s) { var m={Paid:'b-green',Unpaid:'b-red',Partial:'b-amber'}; s=s||'Paid'; return '<span class="badge '+(m[s]||'b-gray')+'">'+esc(s)+'</span>'; }
+function showAlert(id,msg,type) { var el=document.getElementById(id); el.textContent=msg; el.className='alert alert-'+type+' show'; setTimeout(()=>el.classList.remove('show'),6000); }
+
+init();
+</script>
+</body>
+</html>
